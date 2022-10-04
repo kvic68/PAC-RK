@@ -1,0 +1,2 @@
+@ECHO OFF
+"C:\AVR\AvrAssembler2\avrasm2.exe" -S "D:\_REG_\REGULATOR+IIC_woUART_wo1637\labels.tmp" -fI -W+ie -C V2E -o "D:\_REG_\REGULATOR+IIC_woUART_wo1637\regulator+iic.hex" -d "D:\_REG_\REGULATOR+IIC_woUART_wo1637\regulator+iic.obj" -e "D:\_REG_\REGULATOR+IIC_woUART_wo1637\regulator.eep" -m "D:\_REG_\REGULATOR+IIC_woUART_wo1637\regulator.map" "D:\_REG_\REGULATOR+IIC_woUART_wo1637\regulator+iic.asm"
