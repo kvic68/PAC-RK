@@ -1,2 +1,0 @@
-@ECHO OFF
-"C:\AVR\AvrAssembler2\avrasm2.exe" -S "C:\Users\Viktor\Documents\GitHub\PAC-RK\STAB\labels.tmp" -fI -W+ie -C V2E -o "C:\Users\Viktor\Documents\GitHub\PAC-RK\STAB\regulator+iic.hex" -d "C:\Users\Viktor\Documents\GitHub\PAC-RK\STAB\regulator+iic.obj" -e "C:\Users\Viktor\Documents\GitHub\PAC-RK\STAB\regulator.eep" -m "C:\Users\Viktor\Documents\GitHub\PAC-RK\STAB\regulator.map" "C:\Users\Viktor\Documents\GitHub\PAC-RK\STAB\regulator+iic.asm"
