@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.1.42  D:\_REG_\REGULATOR+IIC_woUART_wo1637\regulator+iic.asm Wed Sep 21 08:19:45 2022
+AVRASM ver. 2.1.42  C:\Users\Viktor\Documents\GitHub\PAC-RK\STAB\regulator+iic.asm Tue Oct 04 08:06:15 2022
 
 
 EQU  SIGNATURE_000 0000001e
