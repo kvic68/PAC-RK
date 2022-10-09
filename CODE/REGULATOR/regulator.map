@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.1.42  C:\Users\Viktor\Documents\GitHub\PAC-RK\regulator\main.asm Sat Oct 08 11:44:32 2022
+AVRASM ver. 2.1.42  C:\Users\Viktor\Documents\GitHub\PAC-RK\CODE\REGULATOR\main.asm Sat Oct 08 16:05:15 2022
 
 
 EQU  SIGNATURE_000 0000001e
