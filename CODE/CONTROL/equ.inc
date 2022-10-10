@@ -1,14 +1,13 @@
 .equ		F_CPU 					= 16000000 ; Частота процессора в Гц
-.equ		MCP23017ADDR			= $40
 .equ		LED_ADDR				= $78
 .equ 		BMP180ADDR				= $EE
 .equ		IIC_REGULATOR			= $32
 .equ		BUFLEN 					= 16
 .equ 		baudrate 				= 9600  
 .equ 		bauddivider 			= (F_CPU/(16*baudrate))-1
-.equ		defaultStepsFor100ml	= 185000	;250000	;	
-.equ		minStepsFor100ml		= 100000	;150000	;		
-.equ		maxStepsFor100ml		= 1500000	;400000	;
+.equ		defaultStepsFor100ml	= 300000	;количество шагов по умолчанию на 100 мл	
+.equ		minStepsFor100ml		= 100000	;минимум		
+.equ		maxStepsFor100ml		= 1500000	;максимум
 .equ		minRateValue			= 10;
 .equ		maxRateValue			= 3600;
 .equ		maxTargetVolt			= 2500;
@@ -23,47 +22,6 @@
 .equ	T1Div256  	= 0b0001100
 .equ	T1Div1024	= 0b0001101
 ; ----------------------------------------------------------------------------------------
-; ----------------------------------------------------------------------------------------
-; MCP23017 expander http://www.gammon.com.au/forum/?id=10940
-
-.equ	LCD_CS0		= 4	;(0) 15	23(GPA2)    CS1   	Chip select for IC1 (1 = active)  (see LCD_CS1)
-.equ	LCD_CS1		= 3	;(1) 16	24(GPA3)    CS2	    Chip select for IC2 (1 = active)  (see LCD_CS2)
-.equ	LCD_RES		= 2 ;( ) 17	25(GPA4)    ~RST  	1 = not reset, 0 = reset
-.equ	LCD_DI		= 7	;(3) 4	26(GPA5)    D/~I   	1 = data, 0 = instruction    (see LCD_DATA)
-.equ	LCD_RW		= 6	;( ) 5	27(GPA6)    R/~W	1 = read, 0 = write (to LCD) (see LCD_READ)
-.equ	LCD_STROBE	= 5	;(2) 6	28(GPA7)	E		Enable data transfer on 1 -> 0 transition  (see LCD_ENABLE)
-.equ	LCD_LED		= 1
-
-// для моёго индикатора
-/*
-.equ	LCD_CS0		= 2	;(0) 15	23(GPA2)    CS1   	Chip select for IC1 (1 = active)  (see LCD_CS1)
-.equ	LCD_CS1		= 3	;(1) 16	24(GPA3)    CS2	    Chip select for IC2 (1 = active)  (see LCD_CS2)
-.equ	LCD_RES		= 4 ;( ) 17	25(GPA4)    ~RST  	1 = not reset, 0 = reset
-.equ	LCD_DI		= 5	;(3) 4	26(GPA5)    D/~I   	1 = data, 0 = instruction    (see LCD_DATA)
-.equ	LCD_RW		= 6	;( ) 5	27(GPA6)    R/~W	1 = read, 0 = write (to LCD) (see LCD_READ)
-.equ	LCD_STROBE	= 7	;(2) 6	28(GPA7)	E		Enable data transfer on 1 -> 0 transition  (see LCD_ENABLE)
-.equ	LCD_LED		= 1
-*/
-; ----------------------------------------------------------------------------------------
-; --- Настройка MCP 23017 ---
-; -- регистры MCP23017
-.equ	IOCON	=	$0A
-.equ	IODIRA	=	$00
-.equ	IODIRB	=	$01
-.equ	GPPUA	=	$0C
-.equ	GPPUB	=	$0D
-.equ	GPIOA	=	$12
-.equ	GPIOB	=	$13
-.equ	OLATA	=	$14
-.equ	OLATB	=	$15
-; -- биты регистра IOCON
-.equ	BANK	=	7
-.equ	MIRROR	=	6
-.equ	SEQOP	=	5	; 1-disabled, 0-enabled
-.equ	DISSLW	=	4
-.equ	HAEN	=	3
-.equ	ODR		=	2
-.equ	INTPOL	=	1
 ; ----------------------------------------------------------------------------------------
 ; -- Команды для DS18B20 --
 .equ	SearchROM		= $F0
