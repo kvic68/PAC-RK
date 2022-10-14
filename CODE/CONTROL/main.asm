@@ -11,6 +11,7 @@ reset:
 	.include ("intvectors.inc")
 start:		
 // -- Чистим память и регистры ------------------------------------
+//
 			ldi		ZL,low(SRAM_START)
 			ldi		ZH,high(SRAM_START)
 			clr		r16
