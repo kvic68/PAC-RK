@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.1.42  C:\Users\Viktor\Documents\GitHub\PAC-RK\CODE\CONTROL\main.asm Fri Oct 14 17:13:05 2022
+AVRASM ver. 2.1.42  C:\Users\Viktor\Documents\GitHub\PAC-RK\CODE\CONTROL\main.asm Sun Nov 20 20:01:37 2022
 
 
 EQU  SIGNATURE_000 0000001e
@@ -1724,13 +1724,13 @@ CSEG RX_digit     00002d47
 CSEG RX_HEX_A     00002d3f
 CSEG RX_nofull    00002d4e
 CSEG sR_1         00002d74
-CSEG received_P   00002fa2
+CSEG received_P   00002fa4
 CSEG sR_2         00002d77
 CSEG received_M   00002f02
 CSEG sR_3         00002d7a
 CSEG received_T   00002ed1
 CSEG sR_4         00002d7d
-CSEG received_V   00002f5f
+CSEG received_V   00002f61
 CSEG sR_5         00002d80
 CSEG received_U   00002eb9
 CSEG sR_6         00002d83
@@ -1739,7 +1739,7 @@ CSEG sR_7         00002d86
 CSEG received_Z   00002de5
 CSEG sR_8         00002d89
 CSEG received_Y   00002d8a
-CSEG stringReceivedExit 00002fd5
+CSEG stringReceivedExit 00002fd7
 CSEG recvY_six    00002d96
 CSEG recvY_one    00002d93
 CSEG recvY_two    00002d94
@@ -1793,20 +1793,20 @@ CSEG recvM_1      00002f05
 CSEG sR_M3        00002f25
 CSEG sR_M2        00002f0d
 CSEG sR_M2A       00002f13
-CSEG sR_M4        00002f5e
+CSEG sR_M4        00002f60
 CSEG sR_M3A       00002f49
-CSEG recvV_1      00002f62
-CSEG recvV_EX     00002fa1
-CSEG recvV_2      00002f67
-CSEG recvV_3      00002f6f
-CSEG recvV_4      00002f76
-CSEG recvV_5      00002f7e
-CSEG recvP_1      00002fa5
-CSEG recvP_EX     00002fd4
-CSEG recvP_2      00002faa
-CSEG recvP_3      00002fb2
-CSEG recvP_4      00002fb9
-CSEG recvP_5      00002fc1
+CSEG recvV_1      00002f64
+CSEG recvV_EX     00002fa3
+CSEG recvV_2      00002f69
+CSEG recvV_3      00002f71
+CSEG recvV_4      00002f78
+CSEG recvV_5      00002f80
+CSEG recvP_1      00002fa7
+CSEG recvP_EX     00002fd6
+CSEG recvP_2      00002fac
+CSEG recvP_3      00002fb4
+CSEG recvP_4      00002fbb
+CSEG recvP_5      00002fc3
 ESEG edelaysup    0000006c
 ESEG edelaysdn    00000070
 ESEG eactions     00000074

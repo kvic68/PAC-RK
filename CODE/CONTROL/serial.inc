@@ -1203,6 +1203,7 @@ sR_M3A:				ldd r16,Z+1
 					ldi r17,MARGIN0
 					add r16,r17
 						call setNewValFlag
+						call saveDefaultValues
 						ldi r16,3
 						call addTXQueue
 
