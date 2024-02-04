@@ -230,6 +230,7 @@ printExtras:		movw X,Z
 // запрет отображения переменной (R16) на экране
 disableOutput:			PUSHY
 						push r16
+						push r17
 						subi r16,$80
 						clr r17
 						LDY ExtrasConfig
@@ -238,6 +239,7 @@ disableOutput:			PUSHY
 						ldd r16,Y+1
 						CLRB r16,6
 						std Y+1,r16
+						pop r17
 						pop r16
 						POPY			
 						ret
@@ -251,8 +253,8 @@ enableOutput:			PUSHY
 						add YL,r16		adc YH,r17
 						add YL,r16		adc YH,r17
 						ldd r16,Y+1
-						SETB r16,6
-						std Y+1,r16
+							SETB r16,6
+							std Y+1,r16
 						pop r16
 						POPY
 						ret
@@ -277,41 +279,6 @@ disableAllOutputsEx:	pop r17
 						POPY
 					ret
 //---------------------------------------------------------------------------------------------------------------------
-// -- проверка на предмет одного нового значения и вывод, если надо ------------------
-checkForOneNewValue:	PUSHY
-						LDY ExtrasConfig						
-						push r16
-							subi r16,$80
-							clr r17
-							add YL,r16	adc YH,r17
-							add YL,r16	adc YH,r17
-							ldd r16,Y+1
-							andi r16,0b11000000		;	бит 6 - разрешение вывода, 7 - новое значение
-							cpi  r16,0b11000000
-						pop r16
-							brne checkForOneNewValueEx
-						push r16
-							call getVarPrintConfig
-							call printExtras
-
-						pop r16
-checkForOneNewValueEx:	POPY
-						ret
-//---------------------------------------------------------------------------------------------------------------------
-// -- просмотр всех выводимых значений на предмет обновления ------
-newValueScan:			push r16
-						ldi r16,$88			;	начальный код сканирования
-
-newValueScanCycle:		cpi r16,$90			;	конечный код сканирования
-						brcc newValueScanEx
-
-						call checkForOneNewValue
-						inc r16
-						rjmp newValueScanCycle
-
-newValueScanEx:			pop r16
-						ret
-//---------------------------------------------------------------------------------------------------------------------
 // установить флаг нового значения переменной, в R16 - код переменной
 setNewValFlag:			PUSHY
 						push r16
@@ -323,8 +290,8 @@ setNewValFlag:			PUSHY
 						add YL,r16	adc YH,r17
 						add YL,r16	adc YH,r17	
 						ldd r17,Y+1	
-						SETB r17,7					;	установить флаг нового значения бит 7
-						std Y+1,r17
+							SETB r17,7					;	установить флаг нового значения бит 7
+							std Y+1,r17
 
 						pop r17
 						pop r16

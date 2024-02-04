@@ -95,7 +95,6 @@ INIT_LED_CYCLE:	lpm r16,Z+
 ; ------------------------------------------------------------------------
 LED_INIT_STREAM:		.db $D5,$80,$A8,$3F,$D3,$00,$40,$8D,$14,$A1,\
 							$C8,$DA,$12,$81,$FF,$D9,$22,$DB,$30,$A4,$A6,$00,$10,$B0
-//						
 LED_INIT_STREAM_END:	.db $AF,$00		; AFh; Display ON
 
 ;LED_INIT_STREAM:		.db $D5, $80	; Divide Ratio/Oscillator Frequency Mode Set: (D5H) (Double Bytes Command) 80
@@ -177,9 +176,6 @@ SET_LED_XY:		lds r17,(POSX)
 				rjmp SET_LED_XY_EXIT
 				push r16
 				
-				sts LCD_X,r17
-				sts LCD_Y,r18
-
 				call softI2CStart
 				lds r16,LED_ADDRESS
 				call softI2CSendByte

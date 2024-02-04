@@ -116,6 +116,9 @@ disableNextEx:		pop r17
 					ret
 //----------------------------------------------------- 88
 printRange:			//call getVarPrintConfig
+						lds r16,(MODE)
+						cpi r16,$00
+						brne printRangeEx
 						lds r16,(FL_RANGE)
 						cpi r16,$00
 						breq printNoRange

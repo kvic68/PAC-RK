@@ -40,8 +40,6 @@ TWIR1BOk:		lds r17,(MODE)
 
 TWIR1BOk2:		sts (MODE),r16
 				call setMode
-				lds r16,$FF
-				sts (FL_NEW_U),r16
 				rjmp TWIR_Ex
 
 // пришло два байта, это целевое значение напряжения
@@ -62,8 +60,6 @@ TWIR2BOk:		sts (TARGET_U+0),r16
 				ldi r16,TargetV
 				call setNewValFlag
 
-				ldi r16,$FF
-				sts (FL_NEW_U),r16
 				rjmp TWIR_Ex
 
 // пришло три байта, первые два - цель, третий - режим работы
@@ -86,8 +82,6 @@ TWIR3BOk1:		sts (TARGET_U+0),r16
 				ldi r16,TargetV
 				call setNewValFlag
 
-				ldi r16,$FF
-				sts (FL_NEW_U),r16
 				rjmp TWIR_Ex
 
 TWIR3BNoU:		lds r16,(i2c_InBuff+2)
@@ -104,8 +98,6 @@ TWIR3BOk2:		lds r17,(MODE)
 TWIR3BOk3:		sts (MODE),r16
 				call setMode
 
-				lds r16,$FF
-				sts (FL_NEW_U),r16
 				rjmp TWIR_Ex
 TWIR_Ex:
 				pop r18

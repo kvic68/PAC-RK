@@ -105,6 +105,7 @@ ZEROCROSS:	PUSHF
 			;	adc r17,r19
 			;	sts (OPTO_OFF_TICK+0),r16
 			;	sts (OPTO_OFF_TICK+1),r17
+				//-----------------------
 				lds r17,(OPTO_OFF_TICK+1)		
 				lds r16,(OPTO_OFF_TICK+0)	;
 			sts OCR1BH,r17				;
@@ -149,15 +150,6 @@ RISING:		ldi r16,ADC_ON				; Старт АЦП
 				sts (COUNT_NEG+0),r18	; запомним длительность
 				sts (COUNT_NEG+1),r19	; отрицательного полупериода
 				; ----------
-				lds r16,(COUNT_POS+0)	; вычислим коррекцию
-				lds r17,(COUNT_POS+1)	; для следующего отрицательного полупериода
-				sub r18,r16				; она должна прибавляться к моменту включения оптрона
-				sbc r19,r17				; т.е. должна быть положительной
-				clc ror r19 ror r18
-				clc ror r19 ror r18
-				//clc ror r19 ror r18
-				sts (CORRECTION+0),r18
-				sts (CORRECTION+1),r19
 				; ----------
 			jmp ZEROCROSS_END
 ; ---------------------------------------------------------------------------------------------
@@ -172,15 +164,6 @@ FALLING:	ldi r16,ADC_OFF				; Стоп АЦП
 				sts (COUNT_POS+0),r18	; запомним длительность
 				sts (COUNT_POS+1),r19	; положительного полупериода
 				; ----------
-				lds r16,(COUNT_NEG+0)	; вычислим коррекцию
-				lds r17,(COUNT_NEG+1)	; для следующего положительного полупериода
-				sub r18,r16				; она должна вычитаться к моменту включения оптрона
-				sbc r19,r17				; т.е. должна быть отрицательной
-				sec ror r19 ror r18
-				sec ror r19 ror r18
-				//sec ror r19 ror r18
-				sts (CORRECTION+0),r18
-				sts (CORRECTION+1),r19
 				; ----------
 ; обрабатываем накопленные за положительный полупериод данные
 			; Вычислим измеренное значение U_RMS
@@ -274,59 +257,104 @@ AVG_LOOP_EX:ldi ZL, low(CU_HISTORY_LENGTH+1)
 				; ----------
 ; ---------------------------------------------------------------------------------
 ; А это обратная связь по RMS напряжению
-OOS_U:		lds r16,(MODE)
+OOS_U:			lds r16,(MODE)
 				cpi r16,0
 				brne modeCheck1
-				rjmp OOS_NORMAL			; стабилизация
+				rjmp mode0_STAB			; стабилизация
+
 modeCheck1:		cpi r16,1
 				brne modeCheck2
-				rjmp modeOOS1			; на разгон
+				rjmp mode1_RAZG			; на разгон
+
 modeCheck2:		cpi r16,2
 				brne modeCheck3
-				rjmp modeOOS2			; на стоп
+				rjmp mode2_STOP			; на стоп
+
 modeCheck3:		cpi r16,3
 				brne modeCheck4
-				rjmp modeOOS2			; на стоп
+				rjmp mode2_STOP			; на стоп
+
 modeCheck4:
 			rjmp ZEROCROSS_END
 ; ---------- разгон
-modeOOS1:	cbi PORTB,5
-			clr r8
-			clr r9
-			inc r8
-			ldi r16,$FF
-			sts (FL_NEW_U),r16
-			rjmp NE
-			rjmp ZEROCROSS_END
+mode1_RAZG:			cbi PORTB,5
+					sbi PORTD,7			; выкл индикатор стабилизации
+					ldi r16,$00
+					sts (FL_RANGE),r16	; флаг стабилизации снять
+//					clr r8
+//					clr r9
+//					inc r8
+					lds ZL,(OPTO_ON_TICK+0)
+					lds ZH,(OPTO_ON_TICK+1)
+				LDY 200
+					sub ZL,YL
+					sbc ZH,YH
+					breq mode1RAZG_M0
+					brcc mode1RAZG_M1
+mode1RAZG_M0:		clr ZL
+					clr ZH
+					adiw Z,1
+mode1RAZG_M1:		movw r8,Z
+					rjmp SET_OPTO_ON_TICK
 ; ---------- стоп
-modeOOS2:	sbi PORTB,5
-			ldi r16, low(DEFAULT_OFF_VALUE)
-			ldi r17,high(DEFAULT_OFF_VALUE)
-			movw r8,r16
-			ldi r16,$FF
-			sts (FL_NEW_U),r16
-			rjmp NE
-			rjmp ZEROCROSS_END
+mode2_STOP:			sbi PORTB,5
+					sbi PORTD,7			; выкл индикатор стабилизации
+					ldi r16,$00
+					sts (FL_RANGE),r16	; флаг стабилизации снять
+					ldi r16, low(DEFAULT_OFF_VALUE)
+					ldi r17,high(DEFAULT_OFF_VALUE)
+					LDY 200
+					lds r8,(OPTO_ON_TICK+0)
+					lds r9,(OPTO_ON_TICK+1)
+					add r8,YL
+					adc r9,YH
+					cp  r8,r16
+					cpc r9,r17
+					brcs mode2_CONT
+					movw r8,r16
+mode2_CONT:			rjmp SET_OPTO_ON_TICK
 ; ----------
-OOS_NORMAL:		sbi PORTB,5
-			lds r6,(CURRENT_U+0)		; по текущему напряжению
-			lds r7,(CURRENT_U+1)
-			lds r8,(TARGET_U+0)
-			lds r9,(TARGET_U+1)
-			sub r6,r8					; delta=CURRENT_U-target_u ([r7..6] = current - target)
-			sbc r7,r9
+mode0_STAB:			sbi PORTB,5
+					lds r6,(CURRENT_U+0)		; по текущему напряжению
+					lds r7,(CURRENT_U+1)
+					lds r8,(TARGET_U+0)
+					lds r9,(TARGET_U+1)
+					sub r6,r8					; delta=CURRENT_U-target_u ([r7..6] = current - target)
+					sbc r7,r9
 
-OOS_NORM_A:
-			lds r8,(OPTO_ON_TICK+0)
-			lds r9,(OPTO_ON_TICK+1)
-			add r8,r6					; opto_on_tick = opto_on_tick + delta
-			adc r9,r7					; Новое значение момента включения симистора
+					brcs DeltaMinus
+					LDY 200
+					rjmp DeltaPlus
+
+DeltaMinus:			LDY -200
+					cp r6,YL
+					cpc r7,YH
+					brcc mode0_CONT
+					movw r6,Y
+					rjmp mode0_CONT
+
+DeltaPlus:			cp  r6,YL
+					cpc r7,YH
+					brcs mode0_CONT
+					movw r6,Y
+					rjmp mode0_CONT
+
+					clc
+					sbrc r7,7
+					sec
+					ror r7
+					ror r6						; delta = delta/2
+
+mode0_CONT:			lds r8,(OPTO_ON_TICK+0)
+					lds r9,(OPTO_ON_TICK+1)
+					add r8,r6					; opto_on_tick = opto_on_tick + delta
+					adc r9,r7					; Новое значение момента включения симистора
 
 			; Проверка на предмет выхода за допустимый диапазон
 			; от 1 до DEFAULT_OFF_VALUE
 
-			sbrs r9,7					; переход, если неотрицательное (0000...7FFF)
-			rjmp N1
+					sbrs r9,7					; переход, если неотрицательное (0000...7FFF)
+					rjmp N1
 
 			; отрицательное значение - установка максимального на выходе
 
@@ -334,17 +362,17 @@ OOS_MAX_U:	ldi r16,1
 			ldi r17,0
 			movw r8,r16					; иначе OPTO_ON_TICK = 1 (максимальное напряжение)
 
+			lds r17,(FL_MAX_U)
 			ldi r16,$FF					; И устанавливаем флаг 
 			sts (FL_MAX_U),r16			; максимального напряжения на выходе
 
-			sts (FL_NEW_U),r16			; На индикатор выводим измеренное значение напряжения
+			cpse r16,r17
+			rjmp SET_OPTO_ON_TICK
 			
-			// далее включаем индикатор низкого входного напряжения
-			//
-			//							;
+			//ldi r16,outputV
+			//call setNewValFlag						;
 										;
-										;
-			jmp NE
+			rjmp SET_OPTO_ON_TICK
 
 			; 
 N1:			ldi r16, low(DEFAULT_OFF_VALUE)
@@ -359,22 +387,19 @@ N1:			ldi r16, low(DEFAULT_OFF_VALUE)
 ;	sts (TARGET_U+0),r16
 ;	sts (TARGET_U+1),r16
 			; обновить индикатор
-				ldi r16,$FF
-				sts (FL_NEW_U),r16
-				sts (FL_NEW_T),r16
 
 			; допустимый диапазон
-N2:			clr r16						; сбрасываем флаг 
+N2:			lds r16,(FL_MAX_U)
+			tst r16
+			breq SET_OPTO_ON_TICK
+
+			clr r16						; сбрасываем флаг 
 			sts (FL_MAX_U),r16			; максимального напряжения на выходе
+			; обновляем целевое на индикаторе
 
+SET_OPTO_ON_TICK:	sts (OPTO_ON_TICK+0),r8
+					sts (OPTO_ON_TICK+1),r9
 
-NE:			sts (OPTO_ON_TICK+0),r8
-			sts (OPTO_ON_TICK+1),r9
-
-
-
-
-;			rjmp NEXT_WORK
 ; ---------------------------------------------------------------------------------
 ; ---------------------------------------------------------------------------------
 			; индикация вхождения усредненного выходного напряжения в допустимый коридор
@@ -382,6 +407,7 @@ CHECK_RANGE:		lds r16,(MODE)
 					cpi r16,0
 					breq CHECK_RANGE_RUN
 					rjmp RANGE_END
+
 CHECK_RANGE_RUN:	lds ZL,(AVERAGE_U+0)
 					lds ZH,(AVERAGE_U+1)
 					lds r16,(TARGET_U+0)
@@ -398,48 +424,48 @@ POSITIVE_DELTA:		ldi r16, low(3)			; +- 0.3 V
 					cpc ZH,r17
 					brcc NOT_RANGE
 
-				clr r16
-				sts (COUNTER_D),r16
-				cbi PORTD,7			; вкл индикатор стабилизации в диапазоне
-				lds r17,(FL_RANGE)
-				ldi r16,$FF
-				sts (FL_RANGE),r16	; флаг стабилизации установить	 
-				rjmp RANGE_EX
+					clr r16
+					sts (COUNTER_D),r16
+					cbi PORTD,7				; вкл индикатор стабилизации в диапазоне
+					lds r17,(FL_RANGE)
+					ldi r16,$FF
+					sts (FL_RANGE),r16		; флаг стабилизации установить	 
+					rjmp RANGE_EX
 
-NOT_RANGE:		lds r16,(COUNTER_D)
-				cpi r16,10
-				brcc NOT_RANGE_A
-				inc r16
-				sts (COUNTER_D),r16
-				rjmp RANGE_END
+NOT_RANGE:			lds r16,(COUNTER_D)
+					cpi r16,25
+					brcc NOT_RANGE_A
+					inc r16
+					sts (COUNTER_D),r16
+					rjmp RANGE_END
 
-NOT_RANGE_A:	sbi PORTD,7			; выкл индикатор стабилизации
-				lds r17,(FL_RANGE)
-				ldi r16,$00
-				sts (FL_RANGE),r16	; флаг стабилизации снять
+NOT_RANGE_A:		sbi PORTD,7				; выкл индикатор стабилизации
+					lds r17,(FL_RANGE)
+					ldi r16,$00
+					sts (FL_RANGE),r16		; флаг стабилизации снять
 
-RANGE_EX:		cpse r16,r17
-				rjmp RANGE_END
+RANGE_EX:			cpse r16,r17
+					rjmp RANGE_END
 
-				ldi r16,Range
-				call setNewValFlag
+					ldi r16,Range
+					call setNewValFlag
 RANGE_END:
-		; ----------
+					; ----------
 ZEROCROSS_END:
 	
-			; ----------
-			POP_ALL_LOW
-			; ----------
-			pop YL
-			pop YH
-			pop ZL
-			pop ZH
-			pop r20
-			; ----------
+					; ----------
+					POP_ALL_LOW
+					; ----------
+					pop YL
+					pop YH
+					pop ZL
+					pop ZH
+					pop r20
+					; ----------
 ZEROCROSS_E:		pop r19
 					pop r18
 					pop r17
 					pop r16
 					POPF
-			reti
+				reti
 ; ----------------------------------------------------------------------------------------

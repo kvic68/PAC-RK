@@ -6,13 +6,20 @@ INCREASE_U:		PUSHF
 				push r19
 
 				lds r16,(MODE)
+				lds r17,(LED_ADDRESS)
+				cpi r17,$FF
+				breq INCREASE_L
+				cpi r17,$00
+				breq INCREASE_B
+				rjmp INCREASE_A
+INCREASE_L:		cpi r16,$00
+				brne INCREASE_B
 INCREASE_A:		cpi r16,3
 				brne INCREASE_RUN
-				rjmp INCREASE_EX
+
+INCREASE_B:		rjmp INCREASE_EX
 				; ----------
-INCREASE_RUN:	ldi r16,$FF
-				sts (FL_NEW_U),r16
-				lds r16,(FL_MAX_U)		; Если выходное напряжение на максимуме,
+INCREASE_RUN:	lds r16,(FL_MAX_U)		; Если выходное напряжение на максимуме,
 				cpi r16,$FF				; то ничего не делаем.
 				brne INCREASE_NORM		; Иначе приступаем к регулировке.
 				rjmp INCREASE_EX
@@ -45,9 +52,6 @@ INCREASE_SET:	sts (TARGET_U+0),r16
 
 				ldi r16,TargetV
 				call setNewValFlag
-
-				ldi r16,$FF
-				sts (FL_NEW_U),r16
 			
 				; ----------
 INCREASE_EX:	pop r19
@@ -75,13 +79,19 @@ DECREASE_U:		PUSHF
 				push r19
 				; ----------
 				lds r16,(MODE)
+				lds r17,(LED_ADDRESS)
+				cpi r17,$FF
+				breq DECREASE_L
+				cpi r17,$00
+				breq DECREASE_B
+				rjmp DECREASE_A
+DECREASE_L:		cpi r16,$00
+				brne DECREASE_B
 DECREASE_A:		cpi r16,3
 				brne DECREASE_RUN
-				rjmp DECREASE_EX
+DECREASE_B:		rjmp DECREASE_EX
 				; ----------
-DECREASE_RUN:	ldi r16,$FF
-				sts (FL_NEW_U),r16
-				lds ZL,(FL_MAX_U)
+DECREASE_RUN:	lds ZL,(FL_MAX_U)
 				cpi ZL,$FF
 				brne DECREASE_NORM
 
@@ -143,9 +153,6 @@ DECREASE_SET:	sts (TARGET_U+0),r16
 				ldi r16,TargetV
 				call setNewValFlag
 
-				ldi r16,$FF
-				sts (FL_NEW_U),r16
-
 DECREASE_EX:	pop r19
 				pop r18
 				pop r17
@@ -179,7 +186,7 @@ normU:			movw r6,r16
 				ret
 ; ------------------------------------------------------------------------
 ; ----------------------------------------------------------------------------------------
-; Отработка изменения сигнала на ногах PC
+; Отработка сигнала аварии на ногах PC
 PCI_ONE:	
 			//ret
 			PUSHF
@@ -192,32 +199,55 @@ PCI_ONE:
 			rjmp PCI_ONE_EX
 
 PCI_ONE_RUN:		in r16,PINC
-					andi r16,0b00000011
+					andi r16,0b00000011				//	Биты: 0 - аварийный вход, 1 - внешний разгон
 					sbrs r16,0	
-					rjmp EXT_STOP
+					rjmp EXT_STOP					//	Если активен аварийный вход, то переходим на его обработку
 						
 						ldi r17,0
-						sts (ExtStopCounter),r17
+						sts (ExtStopCounter),r17	//	Иначе сбрасываем счетчик задержки срабатывания аварийного входа
 
-			
+					
+					andi r16,0b00000010				//	Выделяем сигнал внешнего разгона
+					lds r17,(ExtForcePrev)
+					cp r16,r17
+					brne NewExtForceValue
+					clr r17
+					sts (ExtForceCounter),r17
+					rjmp PCI_ONE_EX
+
+NewExtForceValue:	lds r17,(ExtForceCounter)
+					cpi r17,10
+					brcc ExtForceRun
+					inc r17
+					sts (ExtForceCounter),r17
+					rjmp PCI_ONE_EX
+
+ExtForceRun:		sts (ExtForcePrev),r16
+					clr r17
+					sts (ExtForceCounter),r17
 					sbrc r16,1
-					rjmp EXT_FULLPOWER_OFF
+					rjmp EXT_FULLPOWER_OFF			//	Переход на обработчик НЕактивного уровня сигнала внешнего разгона
 
 					sbrs r16,1
-					rjmp EXT_FULLPOWER_ON
+					rjmp EXT_FULLPOWER_ON			//	Переход на обработчик активного уровня сигнала внешнего разгона
 
 					rjmp PCI_ONE_EX
 // ---------------------------------------------------------
+//
+//	Выключение разгона внешним сигналом
+//
 EXT_FULLPOWER_OFF:		lds r16,(MODE)
 						cpi r16,1
 						brne EXT_FULLPOWER_OFF_EX
-							lds r16,(ExtFullPowerCounter)
-							cpi r16,128
-							brne EXT_FULLPOWER_OFF_EX
+						//	lds r16,(ExtFullPowerCounter)
+						//	cpi r16,128
+						//	brne EXT_FULLPOWER_OFF_EX
 						ldi r16,0
-						sts (ExtFullPowerCounter),r16
+						//sts (ExtFullPowerCounter),r16
 						call setMode
 EXT_FULLPOWER_OFF_EX:	rjmp PCI_ONE_EX
+//
+//	Включение разгона внешним сигналом
 //
 EXT_FULLPOWER_ON:		lds r16,(MODE)
 						cpi r16,0
@@ -225,8 +255,8 @@ EXT_FULLPOWER_ON:		lds r16,(MODE)
 
 						ldi r16,1
 						call setMode
-							ldi r16,128
-							sts (ExtFullPowerCounter),r16
+						//	ldi r16,128
+						//	sts (ExtFullPowerCounter),r16
 
 EXT_FULLPOWER_ON_EX:	rjmp PCI_ONE_EX
 // ---------------------------------------------------------
@@ -243,10 +273,10 @@ EXT_STOP_SET_CNT:		sts (ExtStopCounter),r16
 						rjmp PCI_ONE_EX
 EXT_STOP_RUN:			ldi r16,3
 						call setMode
-						ldi r16,2
-						sts (SOUNDNUMBER),r16
+//						ldi r16,2
+//						sts (SOUNDNUMBER),r16
 					rjmp PCI_ONE_EX
 PCI_ONE_EX:	pop r17
 			pop r16
 			POPF
-			reti
+			ret

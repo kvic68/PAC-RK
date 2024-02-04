@@ -1,85 +1,84 @@
-RX_OK:		PUSHF
-			PUSHZ
-			push r17
-			push r16
-			lds r16,(ACTIONS_FLAGS)
-			sbrc r16,0
-			rjmp RX_EXIT				; если предыдущее заклинание не обработано, похериваем всё
+; ----------------------------------------------------------------------------------------
+RX_OK:				PUSHF
+					PUSHZ
+					push r17
+					push r16
+					lds r16,(ACTIONS_FLAGS)
+					sbrc r16,0
+					rjmp RX_EXIT				; если предыдущая строка не обработана, похериваем всё
 
-RX_run:		LDZ RX_BUFFER				; Начало буфера приема
+					LDZ RX_BUFFER				; Начало буфера приема
 
-			lds r16,UDR0				; пришедший байт
-			cpi r16,'S'
-				brne RX_cond1
-			rjmp RX_SMT
-RX_cond1:		cpi r16,'s'
-				brne RX_cond2
-				ldi r16,'S'
-			rjmp RX_SMT
-RX_cond2:		cpi r16,'M'
-				brne RX_cond3
-			rjmp RX_SMT
-RX_cond3:		cpi r16,'m'
-				brne RX_cond4
-				ldi r16,'M'
-			rjmp RX_SMT
-RX_cond4:		cpi r16,'T'
-				brne RX_cond5
-			rjmp RX_SMT
-RX_cond5:	cpi r16,$0D
-				brne RX_cond6
-				rjmp RX_0D
-RX_cond6:		rjmp RX_HEXDIGITS
-; ---------- Приход S,M,T
-RX_SMT:		st Z,r16
-			clr r16
-			sts (RX_PTR),r16
-			rjmp RX_EXIT	
-; ---------- Все прочие символы кроме #0D
-RX_HEXDIGITS:	cpi r16,'0'
-					brlo RX_nodigit
-				cpi r16,'9'
-					brlo RX_good
-					breq RX_good
-				cpi r16,'A'
-					brlo RX_nodigit
-				cpi r16,'F'
-					brlo RX_good
-					breq RX_good
-				subi r16,$20
-				cpi r16,'A'
-					brlo RX_nodigit
-				cpi r16,'F'
-					brlo RX_good
-					breq RX_good
-RX_nodigit:		rjmp RX_EXIT
-RX_good:
-				lds r17,(RX_PTR)
-				inc r17
-				cpi r17,$0F
-				brlo RX_nofull
-				breq RX_nofull
+					lds r16,UDR0				; пришедший байт
+			
+					cpi r16,$0D
+					brne RX_CHK_0
+					rjmp RX_0D
+
+RX_CHK_0:			cpi r16,'G'					; символы от G до Z используются как указатель того, что надо сделать
+					brcc RX_CHK_1
+				rjmp RX_CHK_4
+RX_CHK_1:			cpi r16,'Z'
+					brlo RX_CHK_5
+					breq RX_CHK_5
+					cpi r16,'a'
+				brcc RX_CHK_2
 				rjmp RX_EXIT
-				/*andi r17,$0F
-				tst r17	
-				brne RX_M3
-				dec r17
-				andi r17,$0F*/
-RX_nofull:		sts (RX_PTR),r17
-				add ZL,r17
-				ldi r17,0
-				adc ZH,r17
+RX_CHK_2:			cpi r16,'z'
+				brlo RX_CHK_3
+				breq RX_CHK_3
+				rjmp RX_EXIT
+
+RX_CHK_3:			subi r16,$20
+				rjmp RX_CHK_0
+
+RX_CHK_4:		rjmp RX_HEXDIGITS
+RX_CHK_5:		rjmp RX_PREFIX
+//---------------------------
+; ---------- Приход префикса (G..Z)
+RX_PREFIX:			st Z,r16
+					clr r16
+					sts (RX_PTR),r16			; указатель на 0
+				rjmp RX_EXIT	
+; ---------- Все прочие символы кроме #0D
+RX_HEXDIGITS:		cpi r16,'0'
+					brlo RX_nodigit
+					cpi r16,'9'
+					brlo RX_digit
+					breq RX_digit
+RX_HEX_A:			cpi r16,'A'
+					brlo RX_nodigit
+					cpi r16,'F'
+					brlo RX_digit
+					breq RX_digit
+					subi r16,$20
+				rjmp RX_HEX_A
+				//----------
+RX_nodigit:		rjmp RX_EXIT
+RX_digit:
+					lds r17,(RX_PTR)
+					inc r17
+					cpi r17,$0F			; проверяем заполненность буфера
+					brlo RX_nofull
+					breq RX_nofull
+				rjmp RX_EXIT
+				//----------
+RX_nofull:			sts (RX_PTR),r17
+					add ZL,r17
+					ldi r17,0
+					adc ZH,r17
 					st Z,r16
-			rjmp RX_EXIT
+				rjmp RX_EXIT
 ; ---------- Пришел символ #0D
-RX_0D:		lds r16,(ACTIONS_FLAGS)
-			SETB r16,0						; устанавливаем флаг нового заклинания
-			sts (ACTIONS_FLAGS),r16			; в RX_PTR количество символов после управляющего (S,M,T)
+RX_0D:			lds r16,(ACTIONS_FLAGS)
+				SETB r16,0						; устанавливаем флаг новой строки
+				sts (ACTIONS_FLAGS),r16			; в RX_PTR количество символов после управляющего (G..Z),
+			call stringReceived
 RX_EXIT:
-			pop r16
-			pop r17
-			POPZ
-			POPF
+				pop r16
+				pop r17
+				POPZ
+				POPF
 			reti
 ; ----------------------------------------------------------------------------------------
 stringReceived:		PUSHF
@@ -109,12 +108,14 @@ sR_S:				;lds r16,(MODE)
 					;rjmp sR_ex
 
 sR_S1:				clr r18
-						cpi r17,4
-						breq sR_S2
+					cpi r17,4
+					breq sR_S2
 					cpi r17,3
 					breq sR_S2a
 					cpi r17,2
 					breq sR_S2b
+					cpi r17,1
+					breq sR_S2c
 					rjmp sR_ex
 
 sR_S2:				ld r16,Z+
@@ -137,7 +138,7 @@ sR_S2b:				ld r16,Z+
 					andi r16,$F0
 					mov r17,r16
 
-					ld r16,Z+
+sR_S2c:				ld r16,Z+
 					call strToHex
 					brcs sR_S3
 					andi r16,$0F
@@ -153,13 +154,10 @@ sR_S2b:				ld r16,Z+
 					sts (TARGET_U+1),r18
 					sts (TARGET_U+0),r17
 
-			ldi r16,TargetV
-			call setNewValFlag
+					ldi r16,TargetV
+					call setNewValFlag
 
-					ldi r16,$FF
-					sts (FL_NEW_U),r16
-
-					
+				
 sR_S3:				rjmp sR_ex
 ; ----------
 ; ----------
@@ -179,11 +177,7 @@ sR_M1:				lds r16,(MODE)
 					rjmp sR_ex
 
 sR_M2:				sts (MODE),r16
-			call setMode
-					//lds r16,(FL_NEW_M)
-					ldi r16,$FF
-					sts (FL_NEW_U),r16
-					sts (FL_NEW_M),r16
+					call setMode
 sR_M3:				rjmp sR_ex
 			
 ; ----------
@@ -204,131 +198,39 @@ sR_ex:				clr r16
 					POPF
 					ret
 ; ----------------------------------------------------------------------------------------
-TX_OK:		reti
+TX_OK:			reti
 ; ----------------------------------------------------------------------------------------
-UD_OK:		PUSHF
-			PUSHZ
-			push r17
-			push r16
-			LDZ TX_BUFFER
-			lds r16,(TX_PTR)
-			ldi r17,0
-			add ZL,r16
-			adc ZH,r17
-			inc r16
-			andi r16,$1F
-			cpi r16,0
-			breq StopUD
-			sts (TX_PTR),r16
-			ld r16,Z+
-
-			cpi r16,0
-			breq StopUD
-
-			sts UDR0,r16
-
-UD_Exit:	pop r16
-			pop r17
-			POPZ
-			POPF
-			reti
-			; ----------
-StopUD:		ldi r16,(1<<RXEN0)|(1<<TXEN0)|(1<<RXCIE0)|(1<<TXCIE0)|(0<<UDRIE0)
-			sts UCSR0B,r16
-			rjmp UD_Exit
-; ----------------------------------------------------------------------------------------
-DiagData:			/*PUSHF
-					PUSHXYZ
-					push r16
+UD_OK:				PUSHF
+					PUSHZ
 					push r17
-
-					LDX TX_BUFFER
-					;------------
-					;---------- COUNT_NEG
-					LDY COUNT_NEG
-					ldd r16,Y+1
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-					ldd r16,Y+0
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-					;---------- COUNT_POS
-					ldi r16,' '
-					st X+,r16
-					LDY COUNT_POS
-					ldd r16,Y+1
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-					ldd r16,Y+0
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-					
-					;---------- CORRECTION
-					//LDY CORRECTION
-					ldi r16,' '
-					st X+,r16
-					LDY CURRENT_U
-					ldd r16,Y+1
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-					ldd r16,Y+0
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-					;---------- CORRECTION
-					//LDY CORRECTION
-					ldi r16,' '
-					st X+,r16
-					LDY OPTO_ON_TICK
-					ldd r16,Y+1
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-					ldd r16,Y+0
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-					;---------- CORRECTION
-					//LDY CORRECTION
-					ldi r16,' '
-					st X+,r16
-					LDY OPTO_OFF_TICK
-					ldd r16,Y+1
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-					ldd r16,Y+0
-					call HexToAscii
-					st X+,r17
-					st X+,r16
-
-
-
-
-					;------------
-					ldi r16,$0D
-					st X+,r16
-					ldi r16,$0A
-					st X+,r16
-					ldi r16,0
-					st X+,r16
+					push r16
+					LDZ TX_BUFFER
+					lds r16,(TX_PTR)
+					ldi r17,0
+					add ZL,r16
+					adc ZH,r17
+					inc r16
+					andi r16,$1F
+					cpi r16,0
+					breq StopUD
 					sts (TX_PTR),r16
+					ld r16,Z+
 
-					ldi r16,(1<<RXEN0)|(1<<TXEN0)|(1<<RXCIE0)|(1<<TXCIE0)|(1<<UDRIE0)
-					sts UCSR0B,r16
+					cpi r16,0
+					breq StopUD
 
+					sts UDR0,r16
+
+UD_Exit:			pop r16
 					pop r17
-					pop r16
-					POPXYZ
+					POPZ
 					POPF
-					*/
-					ret
-
+				reti
+			; ----------
+StopUD:				ldi r16,(1<<RXEN0)|(1<<TXEN0)|(1<<RXCIE0)|(1<<TXCIE0)|(0<<UDRIE0)
+					sts UCSR0B,r16
+				rjmp UD_Exit
+; ----------------------------------------------------------------------------------------
 ; ----------------------------------------------------------------------------------------
 PrepareDataToSend:	PUSHF
 					PUSHXYZ
@@ -350,8 +252,8 @@ PrepareDataToSend:	PUSHF
 					st X+,r17
 					st X+,r16
 					;---------- target U
-			LDY TARGET_U
-			ldd r16,Y+1
+					LDY TARGET_U
+					ldd r16,Y+1
 					call HexToAscii
 //						st X+,r17
 					st X+,r16
@@ -365,12 +267,6 @@ PrepareDataToSend:	PUSHF
 					call HexToAscii
 					;	st X+,r17
 					st X+,r16
-					;---------- ledaddr
-;					LDY LED_ADDRESS
-;					ld r16,Y
-;					call HexToAscii
-;					st X+,r17
-;					st X+,r16
 					;---------- 
 					ldi r16,$0D
 					st X+,r16

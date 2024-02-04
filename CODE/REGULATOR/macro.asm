@@ -4,10 +4,22 @@
 			push r15
 .endmacro
 ; ----------
+.macro	PUSHFand
+			push @0
+			in @0,SREG
+			push @0
+.endmacro
+; ----------
 .macro	POPF
 			pop r15
 			out SREG,r15
 			pop r15
+.endmacro
+; ----------
+.macro	POPFand
+			pop @0
+			out SREG,@0
+			pop @0
 .endmacro
 ; ----------
 .macro	PUSH_ALL_LOW
@@ -96,30 +108,6 @@
 	POP		ZL
 	.ENDM
 ; ----------
-.macro CLEAR_ALL
-		; Очистка памяти и регистров 
-		; http://easyelectronics.ru/avr-uchebnyj-kurs-vazhnye-melochi-1.html
-
-RAM_Flush:	ldi	ZL,Low(SRAM_START)	; Адрес начала ОЗУ
-			ldi	ZH,High(SRAM_START)
-			clr	R16					; Очищаем R16
-Flush:		st 	Z+,R16				; Сохраняем 0 в ячейку памяти
-			cpi	ZH,High(RAMEND+1)	; Достигли конца ОЗУ ?
-			brne	Flush			; Нет? Крутимся дальше!
- 
-			cpi	ZL,Low(RAMEND+1)	; Младший байт достиг конца?
-			brne	Flush
-			st -Z,r16
-		; Настраиваем стек
-			out spl,ZL
-			out sph,ZH
- 
-			ldi	ZL, 30				; Адрес самого старшего регистра	
-			clr	ZH					; Здесь будет 0
-			dec	ZL					; Уменьшая адрес,
-			st	Z, ZH				; записываем в регистр 0,
-			brne	PC-2			; пока не перебрали всё и успокоились.
-.endmacro
 ; ----------------------------------------------------------------------------------------
 	.MACRO	LDX
 	LDI		XL,low(@0)
