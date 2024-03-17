@@ -75,6 +75,7 @@ StringCounter:				.BYTE 1
 //MASK:						.BYTE 1
 
 LED_ADDRESS				:	.BYTE 1
+SOFT_ACK				:	.Byte 1
 COUNTER_D				:	.BYTE 1		; счетчик невхождений в диапазон
 ExtStopCounter			:	.BYTE 1		; счетчик времени нахождения сигнала внешнего стопа в активном уровне
 ExtFullPowerCounter		:	.BYTE 1		;
@@ -91,7 +92,7 @@ DIGIT8					:	.BYTE 1
 DIGIT9					:	.BYTE 1
 HidedZeroesCount		:	.BYTE 1
 //--
-ExtrasConfig:		.BYTE 128			; таблица координат вывода значений, закодированных символами
+ExtrasConfig:		.BYTE 64			; таблица координат вывода значений, закодированных символами
 										; byte+0:	координата Х (0...191)
 										; byte+1:	биты 0...2 	- координата Y (0...7)
 										; 			бит	 4...5	- размер шрифта (0-3)

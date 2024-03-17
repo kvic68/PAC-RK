@@ -12,7 +12,7 @@
 .org	INT1addr 	RETI;				; External Interrupt Rorgest 1		
 .org	PCI0addr 	RETI;				; Pin Change Interrupt Rorgest 0
 .org	PCI1addr 	RETI;				; Pin Change Interrupt Rorgest 1
-.org	PCI2addr 	jmp encoder			; Pin Change Interrupt Rorgest 2
+.org	PCI2addr 	reti;jmp encoder			; Pin Change Interrupt Rorgest 2
 .org	WDTaddr 	RETI;				; Watchdog Time-out Interrupt
 .org	OC2Aaddr 	RETI;				; Timer/Counter2 Compare Match A
 .org	OC2Baddr 	RETI;				; Timer/Counter2 Compare Match B
@@ -127,7 +127,7 @@ Flush:		st 	Z+,R16				; —охран€ем 0 в €чейку пам€ти
 			; Ќастройка прерываний от изменени€ уровне на лини€х порта D (PCINT16..23) PCMSK2, PCIE2
 			ldi r16,0b00011000	//PD5-Btn,PD4-PhB,3-PhA
 			sts PCMSK2,r16
-			ldi r16,0b00000100	//16...23
+			ldi r16,0b00000000	//16...23 0b00000100
 			sts PCICR,r16
 ; ----------------------------------------------------------------------------------------
 			; ----------------------------------------------------------------------------------------
@@ -225,9 +225,12 @@ Flush:		st 	Z+,R16				; —охран€ем 0 в €чейку пам€ти
 			call wait_Y_msec
 			; ----------------------------------------------------------------------------------------
 			; посмотрим, используетс€ ли дисплей на TM1637
+
 checkTM1637:		call softI2CInit
 					call TM1637init
-						brts checkOLEDaddr7A	;	если нет, пойдем провер€ть наличие OLED диспле€
+					lds r16,(SOFT_ACK)
+					tst r16
+						brne checkOLEDaddr7A	;	если нет, пойдем провер€ть наличие OLED диспле€
 					ldi r16,$FF
 					sts LED_ADDRESS,r16
 				rjmp endAddrTM	
@@ -238,7 +241,9 @@ checkOLEDaddr7A:	call softI2CInit
 					ldi r16,$7A
 					call softI2CSendByte
 					call softI2CStop
-						brts checkOLEDaddr78
+					lds r16,(SOFT_ACK)
+					tst r16
+						brne checkOLEDaddr78
 					ldi r16,$7A
 					sts LED_ADDRESS,r16
 				rjmp endAddr
@@ -248,7 +253,9 @@ checkOLEDaddr78:	call softI2CInit
 					ldi r16,$78
 					call softI2CSendByte
 					call softI2CStop
-						brts noOledAddr 
+					lds r16,(SOFT_ACK)
+					tst r16
+						brne noOledAddr 
 					ldi r16,$78
 					sts LED_ADDRESS,r16
 				rjmp endAddr
@@ -463,7 +470,7 @@ brunch_D3:	sbrs r16,3
 				sts (DATA_FLAGS),r16
 				push r16
 				; -- bit 3 set Action --  1 ms
-					//call encoder
+					call encoder
 					call pressButton
 				pop r16
 				rjmp brunch_ex
